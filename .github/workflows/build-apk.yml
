@@ -1,1 +1,51 @@
-placeholder
+name: Build IslamDetector APK
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+
+jobs:
+  build-apk:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Extract Android project
+        run: |
+          unzip -o IslamDetector-v0.1-project.zip
+          test -f IslamDetector-v0.1/settings.gradle.kts
+
+      - name: Set up Java 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - name: Set up Gradle 8.9
+        uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: "8.9"
+
+      - name: Fix source import
+        working-directory: IslamDetector-v0.1
+        run: |
+          sed -i 's/import android.app.\\*;/import android.app.*;import android.graphics.drawable.GradientDrawable;/' app/src/main/java/com/islamdetector/app/MainActivity.java
+
+      - name: Build Debug APK
+        working-directory: IslamDetector-v0.1
+        run: |
+          gradle --no-daemon clean assembleDebug --stacktrace
+          cp app/build/outputs/apk/debug/app-debug.apk ../IslamDetector-v0.1-debug.apk
+
+      - name: Upload APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: IslamDetector-v0.1-debug
+          path: IslamDetector-v0.1-debug.apk
+          if-no-files-found: error
+          retention-days: 30
+
