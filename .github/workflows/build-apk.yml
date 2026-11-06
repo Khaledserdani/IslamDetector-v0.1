@@ -23,35 +23,39 @@ jobs:
           distribution: temurin
           java-version: "17"
 
+      - name: Set up Gradle 8.7
+        uses: gradle/actions/setup-gradle@v6
+        with:
+          gradle-version: "8.7"
+
       - name: Extract Android project
+        shell: bash
         run: |
           unzip -o IslamDetector-v0.1-project.zip
           echo "Project extracted"
-          find . -maxdepth 3 -type f | sort | head -200
+          ls -la IslamDetector-v0.1
 
-      - name: Locate and build Android project
+      - name: Build Android APK
         shell: bash
         run: |
-          PROJECT_DIR="$(find . -type f -name gradlew -printf '%h\n' | head -n 1)"
+          cd IslamDetector-v0.1
 
-          if [ -z "$PROJECT_DIR" ]; then
-            echo "ERROR: gradlew was not found after extracting the ZIP file."
+          if [ ! -f "settings.gradle.kts" ]; then
+            echo "ERROR: settings.gradle.kts was not found."
             exit 1
           fi
 
-          echo "Android project directory: $PROJECT_DIR"
-          cd "$PROJECT_DIR"
-          chmod +x gradlew
-          ./gradlew --no-daemon clean assembleDebug --stacktrace
+          echo "Building IslamDetector v0.1"
+          gradle --no-daemon clean assembleDebug --stacktrace
 
       - name: Prepare APK
         shell: bash
         run: |
-          APK_PATH="$(find . -type f -path '*/app/build/outputs/apk/debug/app-debug.apk' | head -n 1)"
+          APK_PATH="$(find IslamDetector-v0.1 -type f -path '*/app/build/outputs/apk/debug/app-debug.apk' | head -n 1)"
 
           if [ -z "$APK_PATH" ]; then
             echo "ERROR: app-debug.apk was not produced."
-            find . -type f -name '*.apk'
+            find IslamDetector-v0.1 -type f -name '*.apk' -print
             exit 1
           fi
 
@@ -64,3 +68,4 @@ jobs:
           name: IslamDetector-v0.1-debug
           path: IslamDetector-v0.1-debug.apk
           if-no-files-found: error
+
