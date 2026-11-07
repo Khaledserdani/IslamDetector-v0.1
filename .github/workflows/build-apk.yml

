@@ -1,0 +1,66 @@
+name: Build IslamDetector APK
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Java 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Set up Gradle 8.9
+        uses: gradle/actions/setup-gradle@v6
+        with:
+          gradle-version: '8.9'
+
+      - name: Extract Android project
+        shell: bash
+        run: |
+          rm -rf IslamDetector-v0.1
+          unzip -o IslamDetector-v0.1-corrected.zip
+          test -d IslamDetector-v0.1
+          echo "Project extracted successfully"
+
+      - name: Build Android APK
+        shell: bash
+        run: |
+          cd IslamDetector-v0.1
+
+          if [ ! -f "settings.gradle.kts" ] && [ ! -f "settings.gradle" ]; then
+            echo "ERROR: Gradle project not found"
+            exit 1
+          fi
+
+          gradle --no-daemon clean assembleDebug --stacktrace
+
+      - name: Prepare APK
+        shell: bash
+        run: |
+          APK_FILE=$(find IslamDetector-v0.1 -type f -name "*.apk" | head -n 1)
+
+          if [ -z "$APK_FILE" ]; then
+            echo "ERROR: APK was not created"
+            exit 1
+          fi
+
+          mkdir -p apk-output
+          cp "$APK_FILE" apk-output/IslamDetector-v0.1-debug.apk
+
+      - name: Upload APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: IslamDetector-v0.1-APK
+          path: apk-output/IslamDetector-v0.1-debug.apk
+          if-no-files-found: error
